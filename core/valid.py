@@ -111,7 +111,8 @@ def valid_net(cfg,
             cls_ele_losses.update(loss_cls_ele.item())
             reg_losses.update(loss_reg.item())
             view_losses.update(view_loss.item())
- 
+            
+            """
             # Append generated point clouds to TensorBoard
             if output_dir and sample_idx < 3:
                 img_dir = output_dir % 'images'
@@ -134,7 +135,7 @@ def valid_net(cfg,
                 ground_truth_view = ground_truth_views[0].detach().cpu().numpy()
                 rendering_views = utils.point_cloud_visualization.get_point_cloud_image(gt_pc, os.path.join(img_dir, 'test'),
                                                                                         epoch_idx, "ground truth", ground_truth_view)
-                test_writer.add_image('Test Sample#%02d/Point Cloud GroundTruth' % sample_idx, rendering_views, epoch_idx)
+                test_writer.add_image('Test Sample#%02d/Point Cloud GroundTruth' % sample_idx, rendering_views, epoch_idx)"""
 
     if test_writer is not None:
         test_writer.add_scalar('EncoderDecoder/EpochLoss_Rec', reconstruction_losses.avg, epoch_idx)

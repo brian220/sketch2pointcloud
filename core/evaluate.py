@@ -65,33 +65,37 @@ def evaluate_net(cfg):
     print('[INFO] Best view estimation result at epoch %d ...' % view_checkpoint['epoch_idx'])
 
     # evaluate the imgs in folder
+    # evaluate first ten view
     lines = []
     with open(cfg.EVALUATE.INFO_FILE) as f:
         lines = f.readlines()
      
     for info in lines:
         info = info.split()
-        eval_id = int(info[0])
+        eval_id = info[0]
         sample_name = info[1]
-        view_id = int(info[2])
-
-        # get img path
-        input_img_path = cfg.DATASETS.SHAPENET.RENDERING_PATH% (cfg.EVALUATE.TAXONOMY_ID, sample_name, view_id)
-
-        # get gt pointcloud
-        gt_point_cloud_file = cfg.DATASETS.SHAPENET.POINT_CLOUD_PATH % (cfg.EVALUATE.TAXONOMY_ID, sample_name)
-        gt_point_cloud = get_point_cloud(gt_point_cloud_file)
-
-        # get gt view
-        gt_view_file = cfg.DATASETS.SHAPENET.VIEW_PATH % (cfg.EVALUATE.TAXONOMY_ID, sample_name)
-        gt_view = get_view(gt_view_file, view_id)
+        # view_id = int(info[2])
         
-        # evaluate single img
-        evaluate_on_img(cfg,
-                        encoder, decoder, view_estimater,
-                        input_img_path,
-                        eval_transforms, eval_id,
-                        gt_point_cloud, gt_view)
+        print("Evaluate on img :", eval_id)
+
+        for view_id in range(0, 10):
+            # get img path
+            input_img_path = cfg.DATASETS.SHAPENET.RENDERING_PATH% (cfg.EVALUATE.TAXONOMY_ID, sample_name, view_id)
+
+            # get gt pointcloud
+            gt_point_cloud_file = cfg.DATASETS.SHAPENET.POINT_CLOUD_PATH % (cfg.EVALUATE.TAXONOMY_ID, sample_name)
+            gt_point_cloud = get_point_cloud(gt_point_cloud_file)
+
+            # get gt view
+            gt_view_file = cfg.DATASETS.SHAPENET.VIEW_PATH % (cfg.EVALUATE.TAXONOMY_ID, sample_name)
+            gt_view = get_view(gt_view_file, view_id)
+        
+            # evaluate single img
+            evaluate_on_img(cfg,
+                            encoder, decoder, view_estimater,
+                            input_img_path, view_id,
+                            eval_transforms, eval_id,
+                            gt_point_cloud, gt_view)
 
 
 def get_point_cloud(point_cloud_file):
@@ -118,14 +122,13 @@ def get_view(view_file, view_id):
 
 def evaluate_on_img(cfg, 
                     encoder, decoder, view_estimater,
-                    input_img_path,
+                    input_img_path, view_id,
                     eval_transforms, eval_id,
                     gt_point_cloud, gt_view):
     # load img
     img_np = cv2.imread(input_img_path, cv2.IMREAD_UNCHANGED).astype(np.float32) / 255.
     sample = np.array([img_np])
     rendering_images = eval_transforms(rendering_images=sample)
-    print(rendering_images.size())
 
     # inference model
     with torch.no_grad():
@@ -159,18 +162,23 @@ def evaluate_on_img(cfg,
             preds.append((preds_cls[n].float() + delta_value + 0.5) * cfg.CONST.BIN_SIZE)
 
         # Save a copy of image
-        copyfile(input_img_path, os.path.join(cfg.EVALUATE.INPUT_IMAGE_FOLDER, str(eval_id) + '.png'))
+        evaluate_img_dir = os.path.join(cfg.EVALUATE.INPUT_IMAGE_FOLDER, eval_id)
+        if not os.path.exists(evaluate_img_dir):
+            os.mkdir(evaluate_img_dir)
+        copyfile(input_img_path, os.path.join(evaluate_img_dir, str(view_id) + '.png'))
+        
 
         # Predict Pointcloud
         g_pc = generated_point_clouds[0].detach().cpu().numpy()
         pred_view = []
         pred_view.append(preds[0][0].detach().cpu().numpy())
         pred_view.append(preds[1][0].detach().cpu().numpy())
-        rendering_views = utils.point_cloud_visualization.get_point_cloud_image(g_pc, os.path.join(cfg.EVALUATE.OUTPUT_FOLDER, 'reconstruction'),
-                                                                                eval_id, "reconstruction", pred_view)
+        rendering_views = utils.point_cloud_visualization.get_point_cloud_image(g_pc,
+                                                                                os.path.join(cfg.EVALUATE.OUTPUT_FOLDER, 'reconstruction', eval_id),
+                                                                                view_id, "reconstruction", pred_view)
                 
         # Groundtruth Pointcloud
         gt_pc = gt_point_cloud
-        ground_truth_view = gt_view
-        rendering_views = utils.point_cloud_visualization.get_point_cloud_image(gt_pc, os.path.join(cfg.EVALUATE.OUTPUT_FOLDER, 'ground truth'),
-                                                                                eval_id, "ground truth", gt_view)
+        rendering_views = utils.point_cloud_visualization.get_point_cloud_image(gt_pc, 
+                                                                                os.path.join(cfg.EVALUATE.OUTPUT_FOLDER, 'ground truth', eval_id),
+                                                                                view_id, "ground truth", gt_view)

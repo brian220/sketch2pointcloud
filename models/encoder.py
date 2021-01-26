@@ -8,7 +8,10 @@
 
 import torch
 import torchvision.models
+import os
 
+# Set the path for pretrain weight
+os.environ['TORCH_HOME'] = '/media/caig/FECA2C89CA2C406F/sketch3D/pretrain_models'
 
 class Encoder(torch.nn.Module):
     def __init__(self, cfg):

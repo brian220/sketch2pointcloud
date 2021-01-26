@@ -124,10 +124,12 @@ def train_net(cfg):
     view_estimater_lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(view_estimater_solver,
                                                                 milestones=cfg.TRAIN.VIEW_ESTIMATOR_LR_MILESTONES,
                                                                 gamma=cfg.TRAIN.GAMMA)
+    # Use multi gpu to train
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
     if torch.cuda.is_available():
-        encoder = torch.nn.DataParallel(encoder).cuda()
-        decoder = torch.nn.DataParallel(decoder).cuda()
-        view_estimater = torch.nn.DataParallel(view_estimater).cuda()
+        encoder = torch.nn.DataParallel(encoder, device_ids=[0, 1]).cuda()
+        decoder = torch.nn.DataParallel(decoder, device_ids=[0, 1]).cuda()
+        view_estimater = torch.nn.DataParallel(view_estimater, device_ids=[0, 1]).cuda()
 
     # Set up loss functions
     chamfer = ChamferLoss().cuda()
@@ -157,7 +159,7 @@ def train_net(cfg):
               (dt.now(), init_epoch, cfg.TRAIN.NUM_EPOCHES))
 
     # Summary writer for TensorBoard
-    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s', dt.now().isoformat())
+    output_dir = os.path.join(cfg.DIR.OUT_PATH, '%s')
     log_dir = output_dir % 'logs'
     ckpt_dir = output_dir % 'checkpoints'
     train_writer = SummaryWriter(os.path.join(log_dir, 'train'))

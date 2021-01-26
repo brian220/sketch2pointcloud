@@ -172,11 +172,11 @@ def test_net(cfg):
     print("EMD result: ", pointwise_emd_distances.avg)
     print("View estimation result:")
     print('Med_Err is %.2f, and Acc_pi/6 is %.2f \n \n' % (Med, Acc))
-    logname = cfg.DIR.RESULT_PATH 
+    logname = cfg.TEST.RESULT_PATH
     with open(logname, 'a') as f:
         f.write('Reconstruction result: \n')
-        f.write("CD result: %.4f" % cd_distances.avg)
-        f.write("EMD result: %.4f" % pointwise_emd_distances.avg)
+        f.write("CD result: %.4f \n" % cd_distances.avg)
+        f.write("EMD result: %.4f \n" % pointwise_emd_distances.avg)
         f.write('View estimation result: \n')
         f.write('Med_Err is %.2f, and Acc_pi/6 is %.2f \n \n' % (Med, Acc))
             

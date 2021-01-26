@@ -16,7 +16,7 @@ class Decoder(torch.nn.Module):
     def __init__(self, cfg):
         super(Decoder, self).__init__()
         self.cfg = cfg
-        self.batch_size = cfg.CONST.BATCH_SIZE
+        self.batch_size = int(cfg.CONST.BATCH_SIZE / cfg.CONST.DEVICE_NUM)
 
         # parameter for tree gcn
         self.features = [256, 512, 256, 256, 128, 128, 64, 3]
