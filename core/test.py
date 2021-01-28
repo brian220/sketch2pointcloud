@@ -85,6 +85,7 @@ def test_net(cfg):
     
     # Batch average meterics
     cd_distances = utils.network_utils.AverageMeter()
+    emd_distances = utils.network_utils.AverageMeter()
     pointwise_emd_distances = utils.network_utils.AverageMeter()
 
     test_preds = torch.zeros([1, 3], dtype=torch.float).cuda()
@@ -118,7 +119,8 @@ def test_net(cfg):
             
             # Compute CD, EMD
             cd_distance = cd(generated_point_clouds, ground_truth_point_clouds) / cfg.CONST.BATCH_SIZE / cfg.CONST.NUM_POINTS
-            pointwise_emd_distance = torch.mean(emd(generated_point_clouds, ground_truth_point_clouds)) / cfg.CONST.NUM_POINTS
+            emd_distance = torch.mean(emd(generated_point_clouds, ground_truth_point_clouds))
+            pointwise_emd_distance = emd_distance / cfg.CONST.NUM_POINTS
             
             #=================================================#
             #          Test the view estimater                #
@@ -150,13 +152,14 @@ def test_net(cfg):
             
             # Append loss and accuracy to average metrics
             cd_distances.update(cd_distance.item())
+            emd_distances.update(emd_distance.item())
             pointwise_emd_distances.update(pointwise_emd_distance.item())
             
             # concatenate results and labels for view estimation
             test_preds = torch.cat((test_preds, test_pred), 0)
             test_ground_truth_views = torch.cat((test_ground_truth_views, ground_truth_views), 0)
 
-            print("Test on [%d/%d] data, CD: %.4f EMD: %.4f" % (sample_idx + 1,  n_batches, cd_distance.item(), pointwise_emd_distance.item()))
+            print("Test on [%d/%d] data, CD: %.4f EMD: %.4f Total EMD %.4f" % (sample_idx + 1,  n_batches, cd_distance.item(), pointwise_emd_distance.item(), emd_distance.item()))
     
     test_preds = test_preds[1:, :]
     test_ground_truth_views = test_ground_truth_views[1:, :]
@@ -166,17 +169,19 @@ def test_net(cfg):
     Acc = 100. * np.mean(test_errs <= 30)
     Med = np.median(test_errs)
     
-    # print result
+   # print result
     print("Reconstruction result:")
     print("CD result: ", cd_distances.avg)
-    print("EMD result: ", pointwise_emd_distances.avg)
+    print("Pointwise EMD result: ", pointwise_emd_distances.avg)
+    print("Total EMD result", emd_distances.avg)
     print("View estimation result:")
     print('Med_Err is %.2f, and Acc_pi/6 is %.2f \n \n' % (Med, Acc))
-    logname = cfg.TEST.RESULT_PATH
+    logname = cfg.TEST.RESULT_PATH 
     with open(logname, 'a') as f:
         f.write('Reconstruction result: \n')
-        f.write("CD result: %.4f \n" % cd_distances.avg)
-        f.write("EMD result: %.4f \n" % pointwise_emd_distances.avg)
+        f.write("CD result: %.8f \n" % cd_distances.avg)
+        f.write("Pointwise EMD result: %.8f \n" % pointwise_emd_distances.avg)
+        f.write("Total EMD result: %.8f \n" % emd_distances.avg)
         f.write('View estimation result: \n')
         f.write('Med_Err is %.2f, and Acc_pi/6 is %.2f \n \n' % (Med, Acc))
             
